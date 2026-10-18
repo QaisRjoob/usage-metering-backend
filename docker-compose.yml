@@ -1,0 +1,64 @@
+# Backend stack: PostgreSQL + API (migrations and seed run at startup).
+#   docker compose up --build
+# API: http://localhost:3000/api/v1      Docs: http://localhost:3000/docs
+# Runs without an AI key (AI_PROVIDER defaults to mock). Ports are published on the loopback
+# addresses only (127.0.0.1 and ::1), so the stack is reachable from this computer, not the network.
+name: usage-metering-backend
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: metering
+      POSTGRES_PASSWORD: metering
+      POSTGRES_DB: metering
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # 5433 for local inspection (psql) without clashing with a native PostgreSQL.
+      - "127.0.0.1:5433:5432"
+      - "[::1]:5433:5432"
+    healthcheck:
+      # Over TCP: on a fresh volume the image first runs a socket-only setup server.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U metering -d metering"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: postgres://metering:metering@postgres:5432/metering
+      DATABASE_POOL_MAX: "20"
+      # Local/demo operator token (exchanged at POST /auth/token for an operator JWT).
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-local-admin-token-change-me}
+      # Signs the JWT access tokens (HS256). Local/demo value: override it for anything real.
+      JWT_SECRET: ${JWT_SECRET:-local-jwt-secret-change-me-0123456789abcdef}
+      # http:// locally; set true behind HTTPS so the refresh cookie is Secure.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Only for browsers calling the API directly; the frontend normally proxies /api (same origin).
+      CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      RUN_MIGRATIONS: "true"
+      SEED_DEMO_DATA: "true"
+      DEMO_API_KEY: umk_demo_local_only_do_not_use_in_production
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_TIMEOUT_MS: ${OPENAI_TIMEOUT_MS:-20000}
+      AI_MAX_OUTPUT_TOKENS: ${AI_MAX_OUTPUT_TOKENS:-800}
+    ports:
+      - "127.0.0.1:3000:3000"
+      - "[::1]:3000:3000"
+
+volumes:
+  pgdata:
