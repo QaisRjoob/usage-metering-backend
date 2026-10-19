@@ -21,6 +21,22 @@
 
 ---
 
+## Live demo
+
+| What | URL |
+|---|---|
+| Web app | https://usage-metering-frontend-w270.onrender.com |
+| API | https://usage-metering-backend.onrender.com/api/v1 |
+| API docs (Swagger UI) | https://usage-metering-backend.onrender.com/docs |
+| Health check | https://usage-metering-backend.onrender.com/api/v1/ready |
+
+The login page has a **Test accounts** box for one-click sign-in. Code:
+[frontend](https://github.com/QaisRjoob/usage-metering-frontend) ·
+[main project](https://github.com/QaisRjoob/usage-metering-service).
+
+Render's free plan sleeps after about 15 minutes without traffic, so the first request can take up
+to a minute.
+
 ## Overview
 
 Other applications call this API before a user performs a metered action. Every request is checked
@@ -192,26 +208,28 @@ Database tests recreate the database in `TEST_DATABASE_URL` (its name must conta
 compose database: `TEST_DATABASE_URL=postgres://metering:metering@localhost:5433/metering_test`.
 Load test method and results: [tests/performance/RESULTS.md](tests/performance/RESULTS.md).
 
-## Deploy (Railway)
+## Deploy (Render)
 
-1. Create a project and add **PostgreSQL** (*New → Database → PostgreSQL*).
-2. Add this repository (*New → GitHub repo*). The `Dockerfile` in the root is used automatically.
+1. Create a **PostgreSQL** database (*New → Postgres*) and copy its **Internal Database URL**.
+2. Create a **Web Service** from this repository with the **Docker** runtime. The `Dockerfile` in
+   the root is used automatically.
 3. Set the variables:
 
 | Variable | Value |
 |---|---|
 | `NODE_ENV` | `production` |
-| `HOST` | `::` |
-| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
-| `ADMIN_API_TOKEN` | a long random value (`openssl rand -base64 48`) |
-| `JWT_SECRET` | a long random value, at least 32 characters |
+| `DATABASE_URL` | the database's Internal Database URL |
+| `ADMIN_API_TOKEN` | *Generate* (a long random value) |
+| `JWT_SECRET` | *Generate* (a long random value) |
 | `COOKIE_SECURE` | `true` |
-| `TRUST_PROXY_HOPS` | `2` (Railway's edge plus the frontend's nginx) |
+| `TRUST_PROXY_HOPS` | `2` (Render's edge plus the frontend's `/api` rewrite) |
 | `SEED_DEMO_DATA` | `true` for a public demo, `false` otherwise |
 
-4. *Settings → Networking → Generate Domain*, and optionally set the health check path to `/api/v1/ready`.
+4. Set the health check path to `/api/v1/ready`.
 
-Railway sets `PORT`. Give the public URL to the frontend as `API_UPSTREAM`.
+Render sets `PORT`. The frontend Static Site rewrites `/api/*` to this service's public URL
+(https://usage-metering-backend.onrender.com), so the browser stays same-origin. The same image runs
+on any Docker host.
 
 ---
 
