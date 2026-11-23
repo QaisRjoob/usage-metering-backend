@@ -19,6 +19,12 @@
 
 </div>
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/QaisRjoob/usage-metering-service/main/docs/screenshots/client-demo.jpg" alt="The web app showing a decision returned by this API" width="90%">
+  <br><sub>A decision returned by this API, shown in the <a href="https://github.com/QaisRjoob/usage-metering-frontend">web app</a>: the rule, the level and both remaining allowances</sub>
+</p>
+
+
 ---
 
 ## Live demo
